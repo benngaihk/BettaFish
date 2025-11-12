@@ -9,9 +9,9 @@ from loguru import logger
 import json
 
 from .llms import LLMClient
-from .nodes import RelevanceAnalysisNode, UsageStrategyNode
+from .nodes import RelevanceAnalysisNode, UsageStrategyNode, DataAnalysisNode
 from .state import State, DataSourceItem, RelevanceAnalysis
-from .tools import DataLoader
+from .tools import DataLoader, get_registry
 from .utils.config import settings, Settings
 
 
@@ -67,21 +67,10 @@ class DataSourceAgent:
     
     def _initialize_llm(self) -> LLMClient:
         """初始化LLM客户端（如果未配置，回退到使用Insight Engine的配置）"""
-        # 尝试使用DataSource Engine的配置，如果未设置则使用Insight Engine的配置
-        api_key = self.config.DATA_SOURCE_ENGINE_API_KEY
-        model_name = self.config.DATA_SOURCE_ENGINE_MODEL_NAME
-        base_url = self.config.DATA_SOURCE_ENGINE_BASE_URL
-        
-        # 如果未配置，尝试从环境变量或配置中获取Insight Engine的配置
-        if not api_key:
-            import os
-            api_key = os.getenv("INSIGHT_ENGINE_API_KEY") or getattr(self.config, "INSIGHT_ENGINE_API_KEY", None)
-        if not model_name:
-            import os
-            model_name = os.getenv("INSIGHT_ENGINE_MODEL_NAME") or getattr(self.config, "INSIGHT_ENGINE_MODEL_NAME", None)
-        if not base_url:
-            import os
-            base_url = os.getenv("INSIGHT_ENGINE_BASE_URL") or getattr(self.config, "INSIGHT_ENGINE_BASE_URL", None)
+        # 使用配置对象的辅助方法获取配置（会自动回退到全局配置）
+        api_key = self.config.get_api_key()
+        model_name = self.config.get_model_name()
+        base_url = self.config.get_base_url()
         
         if not api_key or not model_name:
             raise ValueError(
@@ -102,6 +91,7 @@ class DataSourceAgent:
             threshold=self.config.MAX_RELEVANCE_SCORE_THRESHOLD
         )
         self.strategy_node = UsageStrategyNode(self.llm_client)
+        self.analysis_node = DataAnalysisNode(self.llm_client)
     
     def add_data_source(self, source_id: str, source_type: str, source_path: str, 
                        metadata: Optional[Dict[str, Any]] = None):
@@ -199,9 +189,24 @@ class DataSourceAgent:
             
             strategy_result = self.strategy_node.run(strategy_input)
             self.state = self.strategy_node.mutate_state(strategy_result, self.state)
-            
+
             logger.info(f"使用策略: {self.state.usage_strategy[:200]}...")
-            
+
+            # 步骤 4: 对相关数据源进行深度分析 ✨ 新增
+            logger.info(f"\n开始对相关数据源进行深度分析...")
+            if self.state.filtered_data_sources:
+                analysis_result = self._analyze_relevant_data(query)
+                self.state.data_analysis = analysis_result
+                logger.info(f"数据分析完成: {len(analysis_result.get('key_findings', []))} 个关键发现")
+            else:
+                logger.warning("没有相关数据源，跳过数据分析")
+                self.state.data_analysis = {
+                    "analysis_summary": "没有找到相关数据源",
+                    "key_findings": [],
+                    "insights": [],
+                    "recommendations": []
+                }
+
             # 生成符合ForumEngine规范的输出（类似SummaryNode的输出格式）
             self._output_to_forum_format(query)
             
@@ -211,9 +216,12 @@ class DataSourceAgent:
             # 保存结果
             if save_results:
                 self._save_results()
-            
+
+            # 注册相关数据源到共享存储（供其他 Engine 使用）
+            self._register_relevant_data_sources()
+
             logger.info("\n相关性分析完成！")
-            
+
             return self._get_analysis_summary()
         except Exception as e:
             logger.exception(f"相关性分析过程中出错: {str(e)}")
@@ -249,7 +257,48 @@ class DataSourceAgent:
             summary_parts.append("数据使用策略")
             summary_parts.append("=" * 60)
             summary_parts.append(self.state.usage_strategy)
-            
+
+            # 添加数据分析结果 ✨ 新增
+            if self.state.data_analysis:
+                summary_parts.append("")
+                summary_parts.append("=" * 60)
+                summary_parts.append("数据深度分析")
+                summary_parts.append("=" * 60)
+
+                # 分析总结
+                summary_parts.append("\n【分析总结】")
+                summary_parts.append(self.state.data_analysis.get("analysis_summary", "无"))
+
+                # 关键发现
+                key_findings = self.state.data_analysis.get("key_findings", [])
+                if key_findings:
+                    summary_parts.append("\n【关键发现】")
+                    for i, finding in enumerate(key_findings, 1):
+                        summary_parts.append(f"{i}. {finding}")
+
+                # 洞察
+                insights = self.state.data_analysis.get("insights", [])
+                if insights:
+                    summary_parts.append("\n【深度洞察】")
+                    for i, insight in enumerate(insights, 1):
+                        if isinstance(insight, dict):
+                            summary_parts.append(f"{i}. {insight.get('title', '洞察')}")
+                            summary_parts.append(f"   {insight.get('description', '')}")
+                        else:
+                            summary_parts.append(f"{i}. {insight}")
+
+                # 建议
+                recommendations = self.state.data_analysis.get("recommendations", [])
+                if recommendations:
+                    summary_parts.append("\n【行动建议】")
+                    for i, rec in enumerate(recommendations, 1):
+                        if isinstance(rec, dict):
+                            priority = rec.get('priority', 'medium')
+                            action = rec.get('action', '')
+                            summary_parts.append(f"{i}. [{priority.upper()}] {action}")
+                        else:
+                            summary_parts.append(f"{i}. {rec}")
+
             # 组合成完整总结
             paragraph_content = "\n".join(summary_parts)
             
@@ -269,7 +318,7 @@ class DataSourceAgent:
     def _get_analysis_summary(self) -> Dict[str, Any]:
         """
         获取分析摘要
-        
+
         Returns:
             分析摘要字典
         """
@@ -279,7 +328,8 @@ class DataSourceAgent:
             "relevant_sources": len(self.state.filtered_data_sources),
             "relevance_analyses": [analysis.to_dict() for analysis in self.state.relevance_analyses],
             "usage_strategy": self.state.usage_strategy,
-            "relevant_source_ids": self.state.filtered_data_sources
+            "relevant_source_ids": self.state.filtered_data_sources,
+            "data_analysis": self.state.data_analysis  # ✨ 新增：包含数据分析结果
         }
     
     def _save_results(self):
@@ -308,7 +358,127 @@ class DataSourceAgent:
             json.dump(summary, f, ensure_ascii=False, indent=2)
         
         logger.info(f"分析摘要已保存到: {summary_filepath}")
-    
+
+    def _analyze_relevant_data(self, query: str) -> Dict[str, Any]:
+        """
+        对相关数据源进行深度分析
+
+        Args:
+            query: 用户查询
+
+        Returns:
+            分析结果字典
+        """
+        try:
+            # 准备相关数据源列表
+            relevant_sources = []
+            for source_id in self.state.filtered_data_sources:
+                # 查找对应的数据源项
+                source_item = None
+                for source in self.state.data_sources:
+                    if source.source_id == source_id:
+                        source_item = source
+                        break
+
+                if source_item is None:
+                    continue
+
+                # 获取相关性分析
+                analysis = self.state.get_relevance_analysis(source_id)
+
+                # 构建数据源信息
+                source_info = {
+                    "source_id": source_id,
+                    "relevance_score": analysis.relevance_score if analysis else 0.0,
+                    "reasoning": analysis.reasoning if analysis else "",
+                    "key_matches": analysis.key_matches if analysis else [],
+                    "usage_recommendation": analysis.usage_recommendation if analysis else "",
+                    # 包含完整数据
+                    "data": source_item.data_preview.get("data") if "data" in source_item.data_preview else None,
+                    # 包含数据预览
+                    "data_preview": source_item.data_preview.get("preview") if "preview" in source_item.data_preview else source_item.data_preview
+                }
+
+                relevant_sources.append(source_info)
+
+            # 调用分析节点
+            analysis_input = {
+                "query": query,
+                "relevant_sources": relevant_sources,
+                "usage_strategy": self.state.usage_strategy
+            }
+
+            analysis_result = self.analysis_node.run(analysis_input)
+
+            return analysis_result
+
+        except Exception as e:
+            logger.exception(f"数据分析失败: {str(e)}")
+            return {
+                "analysis_summary": f"分析失败: {str(e)}",
+                "key_findings": [],
+                "insights": [],
+                "recommendations": []
+            }
+
+    def _register_relevant_data_sources(self):
+        """将相关数据源注册到共享存储（供其他 Engine 使用）"""
+        try:
+            # 获取全局注册表
+            registry = get_registry()
+
+            # 准备相关数据源列表
+            relevant_sources = []
+            for source_id in self.state.filtered_data_sources:
+                # 查找对应的数据源项
+                source_item = None
+                for source in self.state.data_sources:
+                    if source.source_id == source_id:
+                        source_item = source
+                        break
+
+                if source_item is None:
+                    continue
+
+                # 获取相关性分析
+                analysis = self.state.get_relevance_analysis(source_id)
+
+                # 构建数据源信息
+                source_info = {
+                    "source_id": source_id,
+                    "source_type": source_item.source_type,
+                    "source_path": source_item.source_path,
+                    "relevance_score": analysis.relevance_score if analysis else 0.0,
+                    "reasoning": analysis.reasoning if analysis else "",
+                    "key_matches": analysis.key_matches if analysis else [],
+                    "usage_recommendation": analysis.usage_recommendation if analysis else "",
+                    "metadata": source_item.metadata,
+                    # 包含完整数据（如果需要）
+                    "full_data": source_item.data_preview.get("data") if "data" in source_item.data_preview else None,
+                    # 包含数据预览
+                    "data_preview": source_item.data_preview.get("preview") if "preview" in source_item.data_preview else source_item.data_preview
+                }
+
+                relevant_sources.append(source_info)
+
+            # 注册到共享存储
+            registration_id = registry.register_relevant_sources(
+                query=self.state.query,
+                relevant_sources=relevant_sources,
+                usage_strategy=self.state.usage_strategy,
+                metadata={
+                    "total_sources": len(self.state.data_sources),
+                    "relevant_sources": len(self.state.filtered_data_sources),
+                    "threshold": self.config.MAX_RELEVANCE_SCORE_THRESHOLD
+                }
+            )
+
+            logger.info(f"已将 {len(relevant_sources)} 个相关数据源注册到共享存储，注册ID: {registration_id}")
+
+        except Exception as e:
+            logger.exception(f"注册相关数据源到共享存储失败: {str(e)}")
+            # 不抛出异常，避免影响主流程
+
     def get_relevant_sources(self) -> List[str]:
         """
         获取相关数据源ID列表

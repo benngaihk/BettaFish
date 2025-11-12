@@ -619,8 +619,14 @@ class LogMonitor:
                             for line in new_lines:
                                 # 检查是否包含目标节点模式（支持多种格式）
                                 if line.strip() and self.is_target_log_line(line):
-                                    # 进一步确认是首次总结节点（FirstSummaryNode或包含"正在生成首次段落总结"）
-                                    if 'FirstSummaryNode' in line or '正在生成首次段落总结' in line:
+                                    # 进一步确认是首次总结节点
+                                    # 包括：FirstSummaryNode、正在生成首次段落总结、或DataSourceEngine的首次输出
+                                    is_first_summary = (
+                                        'FirstSummaryNode' in line or 
+                                        '正在生成首次段落总结' in line or
+                                        ('DataSourceEngine.nodes.summary_node' in line and '正在生成数据源相关性分析总结' in line)
+                                    )
+                                    if is_first_summary:
                                         logger.info(f"ForumEngine: 在{app_name}中检测到第一次论坛发表内容")
                                         self.is_searching = True
                                         self.search_inactive_count = 0

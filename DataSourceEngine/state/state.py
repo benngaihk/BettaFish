@@ -85,6 +85,7 @@ class State:
     relevance_analyses: List[RelevanceAnalysis] = field(default_factory=list)  # 相关性分析结果
     filtered_data_sources: List[str] = field(default_factory=list)  # 过滤后的相关数据源ID列表
     usage_strategy: str = ""              # 数据使用策略
+    data_analysis: Dict[str, Any] = field(default_factory=dict)  # 数据分析结果 ✨ 新增
     is_completed: bool = False            # 是否完成分析
     
     def add_data_source(self, source: DataSourceItem):
@@ -122,6 +123,7 @@ class State:
             "relevance_analyses": [analysis.to_dict() for analysis in self.relevance_analyses],
             "filtered_data_sources": self.filtered_data_sources,
             "usage_strategy": self.usage_strategy,
+            "data_analysis": self.data_analysis,
             "is_completed": self.is_completed
         }
     
@@ -136,6 +138,7 @@ class State:
             relevance_analyses=relevance_analyses,
             filtered_data_sources=data.get("filtered_data_sources", []),
             usage_strategy=data.get("usage_strategy", ""),
+            data_analysis=data.get("data_analysis", {}),
             is_completed=data.get("is_completed", False)
         )
     

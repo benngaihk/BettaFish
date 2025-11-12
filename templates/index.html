@@ -808,25 +808,35 @@
         }
 
         .forum-message.agent:has(.forum-message-header:contains("MEDIA Engine")) {
-            background-color: #ebf2ea;
-            border-color: #6a9a6e;
-        }
+            background-color: #ebf2ea;
+            border-color: #6a9a6e;
+        }
 
-        /* 备用方案：通过JavaScript添加的类 */
-        .forum-message.query-engine {
-            background-color: #eaf1f8;
-            border-color: #608ab1;
-        }
+        .forum-message.agent:has(.forum-message-header:contains("DataSource Engine")) {
+            background-color: #fff4e6;
+            border-color: #d4a574;
+        }
 
-        .forum-message.insight-engine {
-            background-color: #f2ebf3;
-            border-color: #8e6a9f;
-        }
+        /* 备用方案：通过JavaScript添加的类 */
+        .forum-message.query-engine {
+            background-color: #eaf1f8;
+            border-color: #608ab1;
+        }
 
-        .forum-message.media-engine {
-            background-color: #ebf2ea;
-            border-color: #6a9a6e;
-        }
+        .forum-message.insight-engine {
+            background-color: #f2ebf3;
+            border-color: #8e6a9f;
+        }
+
+        .forum-message.media-engine {
+            background-color: #ebf2ea;
+            border-color: #6a9a6e;
+        }
+
+        .forum-message.datasource-engine {
+            background-color: #fff4e6;
+            border-color: #d4a574;
+        }
 
         .forum-message.agent.QUERY {
             background-color: #eaf1f8;
@@ -856,6 +866,16 @@
         .forum-message.agent.insight-engine {
             background-color: #f2ebf3;
             border-color: #8e6a9f;
+        }
+
+        .forum-message.agent.DATASOURCE {
+            background-color: #fff4e6;
+            border-color: #d4a574;
+        }
+
+        .forum-message.agent.datasource-engine {
+            background-color: #fff4e6;
+            border-color: #d4a574;
         }
         
         /* HOST主持人样式 */
@@ -2627,6 +2647,8 @@
                     messageDiv.classList.add('insight-engine');
                 } else if (data.source.toLowerCase().includes('media')) {
                     messageDiv.classList.add('media-engine');
+                } else if (data.source.toLowerCase().includes('datasource')) {
+                    messageDiv.classList.add('datasource-engine');
                 } else if (data.source.toLowerCase().includes('host')) {
                     messageDiv.classList.add('host');
                 }

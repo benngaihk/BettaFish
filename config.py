@@ -60,7 +60,13 @@ class Settings(BaseSettings):
     REPORT_ENGINE_API_KEY: Optional[str] = Field(None, description="Report Agent（推荐Gemini，推荐中转api厂商：https://aihubmix.com/?aff=8Ds9")
     REPORT_ENGINE_BASE_URL: Optional[str] = Field("https://aihubmix.com/v1", description="Report Agent LLM接口BaseUrl")
     REPORT_ENGINE_MODEL_NAME: str = Field("gemini-2.5-pro", description="Report Agent LLM模型，如gemini-2.5-pro")
-    
+
+    # DataSource Agent
+    DATA_SOURCE_ENGINE_API_KEY: Optional[str] = Field(None, description="DataSource Agent API密钥")
+    DATA_SOURCE_ENGINE_BASE_URL: Optional[str] = Field("https://dashscope.aliyuncs.com/compatible-mode/v1", description="DataSource Agent LLM接口BaseUrl")
+    DATA_SOURCE_ENGINE_MODEL_NAME: str = Field("qwen-max", description="DataSource Agent LLM模型名称")
+    MAX_RELEVANCE_SCORE_THRESHOLD: float = Field(0.6, description="相关性阈值（0-1，默认0.6）")
+
     # Forum Host（Qwen3最新模型，这里我使用了硅基流动这个平台，申请地址：https://cloud.siliconflow.cn/）
     FORUM_HOST_API_KEY: Optional[str] = Field(None, description="Forum Host（Qwen3最新模型，这里我使用了硅基流动这个平台，申请地址：https://cloud.siliconflow.cn/）API密钥")
     FORUM_HOST_BASE_URL: Optional[str] = Field("https://api.siliconflow.cn/v1", description="Forum Host LLM BaseUrl")
