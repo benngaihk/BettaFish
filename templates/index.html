@@ -2561,8 +2561,8 @@
                 const source = sourceMatch[1];
                 const content = sourceMatch[2];
                 
-                // 处理四种消息类型：三个Engine和HOST，过滤掉系统消息和空内容
-                if (!['QUERY', 'INSIGHT', 'MEDIA', 'HOST'].includes(source.toUpperCase()) || 
+                // 处理五种消息类型：四个Engine和HOST，过滤掉系统消息和空内容
+                if (!['QUERY', 'INSIGHT', 'MEDIA', 'DATASOURCE', 'HOST'].includes(source.toUpperCase()) || 
                     !content || content.includes('=== ForumEngine')) {
                     return null;
                 }
@@ -2580,6 +2580,9 @@
                         break;
                     case 'QUERY':
                         displayName = 'Query Engine';
+                        break;
+                    case 'DATASOURCE':
+                        displayName = 'DataSource Engine';
                         break;
                     case 'HOST':
                         messageType = 'host';

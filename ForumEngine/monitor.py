@@ -33,7 +33,8 @@ class LogMonitor:
         self.monitored_logs = {
             'insight': self.log_dir / 'insight.log',
             'media': self.log_dir / 'media.log',
-            'query': self.log_dir / 'query.log'
+            'query': self.log_dir / 'query.log',
+            'datasource': self.log_dir / 'datasource.log'
         }
        
         # 监控状态
@@ -61,9 +62,11 @@ class LogMonitor:
             'InsightEngine.nodes.summary_node',  # InsightEngine完整路径
             'MediaEngine.nodes.summary_node',  # MediaEngine完整路径
             'QueryEngine.nodes.summary_node',  # QueryEngine完整路径
+            'DataSourceEngine.nodes.summary_node',  # DataSourceEngine完整路径
             'nodes.summary_node',  # 模块路径（兼容性，用于部分匹配）
             '正在生成首次段落总结',  # FirstSummaryNode的标识
             '正在生成反思总结',  # ReflectionSummaryNode的标识
+            '正在生成数据源相关性分析总结',  # DataSourceEngine的标识
         ]
         
         # 多行内容捕获状态
@@ -359,7 +362,7 @@ class LogMonitor:
                 break
         
         # 移除可能存在的应用名标签（不在方括号内的）
-        app_names = ['INSIGHT', 'MEDIA', 'QUERY']
+        app_names = ['INSIGHT', 'MEDIA', 'QUERY', 'DATASOURCE']
         for app_name in app_names:
             # 移除单独的APP_NAME（在行首）
             content = re.sub(rf'^{app_name}\s+', '', content, flags=re.IGNORECASE)
@@ -563,9 +566,9 @@ class LogMonitor:
         if not content:
             return content
             
-        # 先去除所有可能的标签格式（包括 [INSIGHT]、[MEDIA]、[QUERY] 等）
+        # 先去除所有可能的标签格式（包括 [INSIGHT]、[MEDIA]、[QUERY]、[DATASOURCE] 等）
         # 使用更强力的清理方式
-        all_app_names = ['INSIGHT', 'MEDIA', 'QUERY']
+        all_app_names = ['INSIGHT', 'MEDIA', 'QUERY', 'DATASOURCE']
         
         for name in all_app_names:
             # 去除 [APP_NAME] 格式（大小写不敏感）
@@ -631,8 +634,11 @@ class LogMonitor:
                             captured_contents = self.process_lines_for_json(new_lines, app_name)
                             
                             for content in captured_contents:
-                                # 将app_name转换为大写作为标签（如 insight -> INSIGHT）
+                                # 将app_name转换为大写作为标签（如 insight -> INSIGHT, datasource -> DATASOURCE）
                                 source_tag = app_name.upper()
+                                # 特殊处理：datasource -> DATASOURCE
+                                if source_tag == 'DATASOURCE':
+                                    source_tag = 'DATASOURCE'
                                 self.write_to_forum_log(content, source_tag)
                                 # logger.info(f"ForumEngine: 捕获 - {content}")
                                 captured_any = True

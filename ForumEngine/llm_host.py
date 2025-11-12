@@ -117,7 +117,7 @@ class ForumHost:
                     continue
                 
                 # 记录agent发言
-                if speaker in ['INSIGHT', 'MEDIA', 'QUERY']:
+                if speaker in ['INSIGHT', 'MEDIA', 'QUERY', 'DATASOURCE']:
                     # 处理转义的换行符
                     content = content.replace('\\n', '\n')
                     
@@ -147,6 +147,7 @@ class ForumHost:
 - **INSIGHT Agent**：专注于私有舆情数据库的深度挖掘和分析，提供历史数据和模式对比
 - **MEDIA Agent**：擅长多模态内容分析，关注媒体报道、图片、视频等视觉信息的传播效果
 - **QUERY Agent**：负责精准信息搜索，提供最新的网络信息和实时动态
+- **DATASOURCE Agent**：负责判断外部数据源与问题的相关性，并决定如何使用这些数据
 
 **发言要求**：
 1. **综合性**：每次发言控制在1000字以内，内容应包括事件梳理、观点整合、问题引导等多个方面
@@ -186,7 +187,7 @@ class ForumHost:
 - 指出关键转折点和重要节点
 
 **二、观点整合与对比分析**
-- 综合INSIGHT、MEDIA、QUERY三个Agent的视角和发现
+- 综合INSIGHT、MEDIA、QUERY、DATASOURCE四个Agent的视角和发现
 - 指出不同数据源之间的共识与分歧
 - 分析每个Agent的信息价值和互补性
 - 如果发现事实错误或逻辑矛盾，请明确指出并给出理由

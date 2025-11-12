@@ -353,8 +353,8 @@ def parse_forum_log_line(line):
         if source == 'SYSTEM' or not content.strip():
             return None
         
-        # 只处理三个Engine的消息
-        if source not in ['QUERY', 'INSIGHT', 'MEDIA']:
+        # 只处理四个Engine的消息
+        if source not in ['QUERY', 'INSIGHT', 'MEDIA', 'DATASOURCE']:
             return None
         
         # 根据来源确定消息类型和发送者

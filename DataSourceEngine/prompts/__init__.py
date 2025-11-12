@@ -1,0 +1,14 @@
+"""
+提示词模板模块
+"""
+
+from .prompts import (
+    SYSTEM_PROMPT_RELEVANCE_ANALYSIS,
+    SYSTEM_PROMPT_USAGE_STRATEGY
+)
+
+__all__ = [
+    "SYSTEM_PROMPT_RELEVANCE_ANALYSIS",
+    "SYSTEM_PROMPT_USAGE_STRATEGY"
+]
+
