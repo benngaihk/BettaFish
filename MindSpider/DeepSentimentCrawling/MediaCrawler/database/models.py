@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, Text, String, BigInteger
+from sqlalchemy import create_engine, Column, Integer, Text, String, BigInteger, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -432,3 +432,61 @@ class ZhihuCreator(Base):
     get_voteup_count = Column(Integer, default=0)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+
+
+class EPRCProfitLoss(Base):
+    """EPRC 赚蚀分析表"""
+    __tablename__ = 'eprc_profit_loss'
+    id = Column(Integer, primary_key=True)
+    content_id = Column(String(64), index=True, unique=True)  # 唯一标识
+    region = Column(String(100), index=True)  # 地区
+    estate_name = Column(String(200), index=True)  # 屋苑名称
+    profit_cases = Column(Integer, default=0)  # 赚的宗数
+    profit_range = Column(Text)  # 赚的幅度（如："+10.5%"）
+    loss_cases = Column(Integer, default=0)  # 蚀的宗数
+    loss_range = Column(Text)  # 蚀的幅度（如："-8.2%"）
+    title = Column(Text)  # 标题
+    content_text = Column(Text)  # 内容文本
+    content_url = Column(Text)  # 内容URL
+    page_num = Column(Integer, default=1)  # 页码
+    record_date = Column(String(20), index=True)  # 数据记录日期（EPRC显示前一天的数据，格式：YYYY-MM-DD）
+    created_time = Column(String(32), index=True)  # 爬取时间戳
+    add_ts = Column(BigInteger)  # 添加时间戳
+    last_modify_ts = Column(BigInteger)  # 最后修改时间戳
+
+
+class EPRCRanking(Base):
+    """EPRC 成交排行榜表"""
+    __tablename__ = 'eprc_ranking'
+    id = Column(Integer, primary_key=True)
+    content_id = Column(String(64), index=True, unique=True)  # 唯一标识
+    rank = Column(Integer, index=True)  # 排名
+    estate_name = Column(String(200), index=True)  # 屋苑名称
+    region = Column(String(100), index=True)  # 地区
+    transaction_count = Column(Integer, default=0)  # 成交宗数
+    highest_price = Column(Numeric(12, 2))  # 最高成交呎價（港元/平方呎）
+    lowest_price = Column(Numeric(12, 2))  # 最低成交呎價（港元/平方呎）
+    avg_price = Column(Numeric(12, 2))  # 平均呎價（港元/平方呎）
+    title = Column(Text)  # 标题
+    content_text = Column(Text)  # 内容文本
+    content_url = Column(Text)  # 内容URL
+    page_num = Column(Integer, default=1)  # 页码
+    record_date = Column(String(20), index=True)  # 数据记录日期（EPRC显示前一天的数据，格式：YYYY-MM-DD）
+    created_time = Column(String(32), index=True)  # 爬取时间戳
+    add_ts = Column(BigInteger)  # 添加时间戳
+    last_modify_ts = Column(BigInteger)  # 最后修改时间戳
+
+
+class EPRCContent(Base):
+    """EPRC 通用内容表（用于存放归类不了的其他类型数据）"""
+    __tablename__ = 'eprc_content'
+    id = Column(Integer, primary_key=True)
+    content_id = Column(String(64), index=True)  # 内容唯一标识
+    title = Column(Text)  # 标题
+    content_text = Column(Text)  # 内容文本
+    content_url = Column(Text)  # 内容URL
+    record_date = Column(String(20), index=True)  # 数据记录日期（EPRC显示前一天的数据，格式：YYYY-MM-DD）
+    source_keyword = Column(Text)  # 来源关键词（用于标识数据类型，如：市场动向、成交走势等）
+    created_time = Column(String(32), index=True)  # 爬取时间戳
+    add_ts = Column(BigInteger)  # 添加时间戳
+    last_modify_ts = Column(BigInteger)  # 最后修改时间戳

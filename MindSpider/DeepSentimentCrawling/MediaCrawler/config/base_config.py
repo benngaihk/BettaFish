@@ -9,7 +9,7 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 # 基础配置
-PLATFORM = "bili"  # 平台，xhs | dy | ks | bili | wb | tieba | zhihu
+PLATFORM = "eprc"  # 平台，xhs | dy | ks | bili | wb | tieba | zhihu | eprc
 KEYWORDS = "电影鬼灭之刃,亲属想侵吞3姐妹亡父赔偿款,网警斩断侵害未成年人网络黑色产业链,2007年后出生的人不能在马尔代夫吸烟,沈月,是公主也是自己的骑士,以军虐囚视频,唐朝诡事录,广州地铁回应APP乘车码频繁弹窗广告,全红婵的减肥计划精确到克"  # 关键词搜索配置，以英文逗号分隔
 LOGIN_TYPE = "qrcode"  # qrcode or phone or cookie
 COOKIES = ""
@@ -28,16 +28,16 @@ IP_PROXY_PROVIDER_NAME = "kuaidaili"  # kuaidaili | wandouhttp
 # 设置False会打开一个浏览器
 # 小红书如果一直扫码登录不通过，打开浏览器手动过一下滑动验证码
 # 抖音如果一直提示失败，打开浏览器看下是否扫码登录之后出现了手机号验证，如果出现了手动过一下再试。
-HEADLESS = True
+HEADLESS = False  # 设置为False可以看到浏览器操作过程
 
-# 是否保存登录状态
-SAVE_LOGIN_STATE = True
+# 是否保存登录状态（EPRC不需要登录，设为False避免浏览器崩溃）
+SAVE_LOGIN_STATE = False
 
 # ==================== CDP (Chrome DevTools Protocol) 配置 ====================
 # 是否启用CDP模式 - 使用用户现有的Chrome/Edge浏览器进行爬取，提供更好的反检测能力
 # 启用后将自动检测并启动用户的Chrome/Edge浏览器，通过CDP协议进行控制
 # 这种方式使用真实的浏览器环境，包括用户的扩展、Cookie和设置，大大降低被检测的风险
-ENABLE_CDP_MODE = True
+ENABLE_CDP_MODE = False  # 暂时禁用CDP模式，使用标准模式
 
 # CDP调试端口，用于与浏览器通信
 # 如果端口被占用，系统会自动尝试下一个可用端口
@@ -61,7 +61,15 @@ BROWSER_LAUNCH_TIMEOUT = 30
 AUTO_CLOSE_BROWSER = True
 
 # 数据保存类型选项配置,支持五种类型：csv、db、json、sqlite、postgresql, 最好保存到DB，有排重的功能。
-SAVE_DATA_OPTION = "postgresql"  # csv or db or json or sqlite or postgresql
+# 根据 .env 中的 DB_DIALECT 自动选择数据库类型
+import os
+_db_dialect = os.getenv("DB_DIALECT", "").lower()
+if _db_dialect == "mysql":
+    SAVE_DATA_OPTION = "db"  # MySQL 使用 "db"
+elif _db_dialect == "postgresql":
+    SAVE_DATA_OPTION = "postgresql"
+else:
+    SAVE_DATA_OPTION = "db"  # 默认使用 MySQL
 
 # 用户浏览器缓存的浏览器文件配置
 USER_DATA_DIR = "%s_user_data_dir"  # %s will be replaced by platform name
@@ -94,9 +102,15 @@ ENABLE_GET_WORDCLOUD = False
 # 自定义词语及其分组
 # 添加规则：xx:yy 其中xx为自定义添加的词组，yy为将xx该词组分到的组名。
 CUSTOM_WORDS = {
-    "零几": "年份",  # 将“零几”识别为一个整体
+    "零几": "年份",  # 将"零几"识别为一个整体
     "高频词": "专业术语",  # 示例自定义词
 }
+
+# ==================== EPRC 专用配置 ====================
+# EPRC 是否使用浏览器模式
+# False: 使用 requests + BeautifulSoup（推荐，更稳定）
+# True: 使用 Playwright 浏览器（如果页面需要 JavaScript 渲染）
+EPRC_USE_BROWSER = False
 
 # 停用(禁用)词文件路径
 STOP_WORDS_FILE = "./docs/hit_stopwords.txt"
